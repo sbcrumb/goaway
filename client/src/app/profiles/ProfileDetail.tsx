@@ -20,6 +20,8 @@ import {
   CheckIcon,
   PencilIcon,
   TrashIcon,
+  UserMinusIcon,
+  UserPlusIcon,
   XIcon
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
@@ -39,6 +41,12 @@ export type ProfileDetail = {
   sources: ProfileSourceStatus[];
 };
 
+type ClientEntry = {
+  ip: string;
+  name: string;
+  profileId: number | null;
+};
+
 interface Props {
   profile: ProfileDetail | null;
   open: boolean;
@@ -56,12 +64,16 @@ export function ProfileDetail({ profile, open, onClose, onRenamed }: Props) {
   const [editedName, setEditedName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [allClients, setAllClients] = useState<ClientEntry[]>([]);
+  const [newClientIP, setNewClientIP] = useState("");
+
   useEffect(() => {
     if (!profile || !open) return;
     setEditedName(profile.name);
     setSources(profile.sources ?? []);
     fetchBlacklist();
     fetchWhitelist();
+    fetchClients();
   }, [profile, open]);
 
   const fetchBlacklist = async () => {
@@ -74,6 +86,46 @@ export function ProfileDetail({ profile, open, onClose, onRenamed }: Props) {
     if (!profile) return;
     const [code, data] = await GetRequest(`profiles/${profile.id}/whitelist`);
     if (code === 200) setWhitelist(data.domains ?? []);
+  };
+
+  const fetchClients = async () => {
+    const [code, data] = await GetRequest("clients");
+    if (code === 200 && Array.isArray(data)) {
+      setAllClients(data.map((c: ClientEntry) => ({ ip: c.ip, name: c.name, profileId: c.profileId ?? null })));
+    }
+  };
+
+  const assignedClients = allClients.filter(
+    (c) => profile && c.profileId === profile.id
+  );
+
+  const handleAssignClient = async (ip: string) => {
+    if (!profile || !ip.trim()) return;
+    const [code] = await PutRequest(
+      `client/${encodeURIComponent(ip.trim())}/profile/${profile.id}`,
+      {}
+    );
+    if (code === 200) {
+      setAllClients((prev) =>
+        prev.map((c) => (c.ip === ip.trim() ? { ...c, profileId: profile.id } : c))
+      );
+      setNewClientIP("");
+      toast.success(`${ip.trim()} assigned to ${profile.name}`);
+    }
+  };
+
+  const handleRemoveClient = async (ip: string) => {
+    if (!profile) return;
+    const [code] = await DeleteRequest(
+      `client/${encodeURIComponent(ip)}/profile`,
+      null
+    );
+    if (code === 200) {
+      setAllClients((prev) =>
+        prev.map((c) => (c.ip === ip ? { ...c, profileId: null } : c))
+      );
+      toast.success(`${ip} removed from ${profile.name}`);
+    }
   };
 
   const handleToggleSource = async (sourceId: number, active: boolean) => {
@@ -227,8 +279,11 @@ export function ProfileDetail({ profile, open, onClose, onRenamed }: Props) {
           </SheetTitle>
         </SheetHeader>
 
-        <Tabs defaultValue="sources">
+        <Tabs defaultValue="clients">
           <TabsList className="w-full">
+            <TabsTrigger value="clients" className="flex-1">
+              Clients
+            </TabsTrigger>
             <TabsTrigger value="sources" className="flex-1">
               Sources
             </TabsTrigger>
@@ -239,6 +294,65 @@ export function ProfileDetail({ profile, open, onClose, onRenamed }: Props) {
               Whitelist
             </TabsTrigger>
           </TabsList>
+
+          {/* Clients Tab */}
+          <TabsContent value="clients" className="mt-4 space-y-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="192.168.1.100"
+                value={newClientIP}
+                onChange={(e) => setNewClientIP(e.target.value)}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && handleAssignClient(newClientIP)
+                }
+              />
+              <Button
+                onClick={() => handleAssignClient(newClientIP)}
+                size="sm"
+                disabled={!newClientIP.trim()}
+              >
+                <UserPlusIcon size={14} className="mr-1" />
+                Assign
+              </Button>
+            </div>
+            <Separator />
+            <div className="space-y-1 max-h-80 overflow-y-auto">
+              {assignedClients.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No clients assigned to this profile.
+                  {!profile.isDefault && (
+                    <> Enter an IP above to assign one.</>
+                  )}
+                </p>
+              ) : (
+                assignedClients.map((client) => (
+                  <div
+                    key={client.ip}
+                    className="flex items-center justify-between px-3 py-2 bg-accent rounded text-sm"
+                  >
+                    <div>
+                      <span className="font-mono">{client.ip}</span>
+                      {client.name && client.name !== "unknown" && (
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {client.name}
+                        </span>
+                      )}
+                    </div>
+                    {!profile.isDefault && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 shrink-0 ml-2"
+                        onClick={() => handleRemoveClient(client.ip)}
+                      >
+                        <UserMinusIcon size={12} className="text-red-500" />
+                      </Button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </TabsContent>
 
           {/* Sources Tab */}
           <TabsContent value="sources" className="mt-4 space-y-2">
