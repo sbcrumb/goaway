@@ -44,5 +44,10 @@ func AutoMigrate(db *gorm.DB) error {
 		&Prefetch{},
 		&Audit{},
 		&Alert{},
+		&Profile{},
+		&ProfileSource{},
+		&ProfileCustomBlacklist{},
+		&ProfileWhitelist{},
+		&SubnetProfile{},
 	)
 }

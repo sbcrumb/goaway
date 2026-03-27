@@ -13,6 +13,7 @@ import (
 	"goaway/backend/mac"
 	"goaway/backend/notification"
 	"goaway/backend/prefetch"
+	"goaway/backend/profile"
 	"goaway/backend/request"
 	"goaway/backend/resolution"
 	"goaway/backend/services"
@@ -156,6 +157,10 @@ func (a *Application) Start() error {
 	resolutionService := resolution.NewService(resolution.NewRepository(dbConn))
 	userService := user.NewService(user.NewRepository(dbConn))
 	whitelistService := whitelist.NewService(whitelist.NewRepository(dbConn))
+	profileService := profile.NewService(profile.NewRepository(dbConn))
+	if err := profileService.Initialize(context.Background()); err != nil {
+		log.Warning("Failed to initialize profile service: %v", err)
+	}
 
 	a.context.DNSServer.AlertService = alertService
 	a.context.DNSServer.AuditService = auditService
@@ -166,6 +171,7 @@ func (a *Application) Start() error {
 	a.context.DNSServer.UserService = userService
 	a.context.DNSServer.ResolutionService = resolutionService
 	a.context.DNSServer.WhitelistService = whitelistService
+	a.context.DNSServer.ProfileService = profileService
 
 	a.displayStartupInfo()
 
@@ -178,6 +184,7 @@ func (a *Application) Start() error {
 	a.services.UserService = userService
 	a.services.KeyService = keyService
 	a.services.WhitelistService = whitelistService
+	a.services.ProfileService = profileService
 	a.lifecycle = lifecycle.NewManager(a.services)
 
 	runServices := a.lifecycle.Run(a.RestartApplication)

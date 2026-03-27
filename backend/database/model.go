@@ -66,6 +66,41 @@ type MacAddress struct {
 	IP        string    `gorm:"index" json:"ip" validate:"required,ip"`
 	Vendor    string    `json:"vendor"`
 	Bypass    bool      `gorm:"default:false" json:"bypass"`
+	ProfileID *uint     `gorm:"index" json:"profileId"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type Profile struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name      string    `gorm:"unique;not null" json:"name"`
+	IsDefault bool      `gorm:"default:false;not null" json:"isDefault"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type ProfileSource struct {
+	ProfileID uint `gorm:"primaryKey;not null" json:"profileId"`
+	SourceID  uint `gorm:"primaryKey;not null" json:"sourceId"`
+	Active    bool `gorm:"default:true;not null" json:"active"`
+}
+
+type ProfileCustomBlacklist struct {
+	ProfileID uint      `gorm:"primaryKey;not null" json:"profileId"`
+	Domain    string    `gorm:"primaryKey;not null" json:"domain"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type ProfileWhitelist struct {
+	ProfileID uint      `gorm:"primaryKey;not null" json:"profileId"`
+	Domain    string    `gorm:"primaryKey;not null" json:"domain"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type SubnetProfile struct {
+	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	CIDR      string    `gorm:"unique;not null" json:"cidr"`
+	ProfileID uint      `gorm:"not null" json:"profileId"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

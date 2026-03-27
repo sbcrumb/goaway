@@ -283,6 +283,7 @@ func (r *repository) FetchClient(ip string) (*model.Client, error) {
 		Mac        sql.NullString `gorm:"column:mac"`
 		Vendor     sql.NullString `gorm:"column:vendor"`
 		Bypass     sql.NullBool   `gorm:"column:bypass"`
+		ProfileID  sql.NullInt64  `gorm:"column:profile_id"`
 	}
 
 	subquery := r.db.Table("request_logs").
@@ -290,7 +291,7 @@ func (r *repository) FetchClient(ip string) (*model.Client, error) {
 		Where("client_ip = ?", ip)
 
 	if err := r.db.Table("request_logs r").
-		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass").
+		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass, m.profile_id").
 		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
 		Where("r.client_ip = ?", ip).
 		Where("r.timestamp = (?)", subquery).
@@ -310,6 +311,10 @@ func (r *repository) FetchClient(ip string) (*model.Client, error) {
 		Vendor:   row.Vendor.String,
 		Bypass:   row.Bypass.Bool,
 	}
+	if row.ProfileID.Valid {
+		v := uint(row.ProfileID.Int64)
+		client.ProfileID = &v
+	}
 
 	return client, nil
 }
@@ -322,6 +327,7 @@ func (r *repository) FetchAllClients() (map[string]model.Client, error) {
 		Mac        sql.NullString `gorm:"column:mac"`
 		Vendor     sql.NullString `gorm:"column:vendor"`
 		Bypass     sql.NullBool   `gorm:"column:bypass"`
+		ProfileID  sql.NullInt64  `gorm:"column:profile_id"`
 	}
 
 	subquery := r.db.Table("request_logs").
@@ -329,7 +335,7 @@ func (r *repository) FetchAllClients() (map[string]model.Client, error) {
 		Group("client_ip")
 
 	if err := r.db.Table("request_logs r").
-		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass").
+		Select("r.client_ip, r.client_name, r.timestamp, m.mac, m.vendor, m.bypass, m.profile_id").
 		Joins("INNER JOIN (?) latest ON r.client_ip = latest.client_ip AND r.timestamp = latest.max_timestamp", subquery).
 		Joins("LEFT JOIN mac_addresses m ON r.client_ip = m.ip").
 		Scan(&rows).Error; err != nil {
@@ -338,7 +344,7 @@ func (r *repository) FetchAllClients() (map[string]model.Client, error) {
 
 	uniqueClients := make(map[string]model.Client, len(rows))
 	for _, row := range rows {
-		uniqueClients[row.ClientIP] = model.Client{
+		client := model.Client{
 			IP:       row.ClientIP,
 			Name:     row.ClientName,
 			LastSeen: row.Timestamp,
@@ -346,6 +352,11 @@ func (r *repository) FetchAllClients() (map[string]model.Client, error) {
 			Vendor:   row.Vendor.String,
 			Bypass:   row.Bypass.Bool,
 		}
+		if row.ProfileID.Valid {
+			v := uint(row.ProfileID.Int64)
+			client.ProfileID = &v
+		}
+		uniqueClients[row.ClientIP] = client
 	}
 
 	return uniqueClients, nil

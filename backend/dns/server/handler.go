@@ -52,8 +52,21 @@ func (s *DNSServer) shouldBlockQuery(client *model.Client, domainName, fullName 
 		return false
 	}
 
-	return !s.Config.DNS.Status.Paused &&
-		s.BlacklistService.IsBlacklisted(domainName) &&
+	if s.Config.DNS.Status.Paused {
+		return false
+	}
+
+	// If ProfileService is available and client is on a non-default profile,
+	// use per-profile block/whitelist caches. Otherwise fall back to global lists.
+	if s.ProfileService != nil {
+		profileID := s.ProfileService.ResolveProfileForClient(client)
+		if profileID != s.ProfileService.DefaultProfileID() {
+			return s.ProfileService.IsBlockedForProfile(profileID, domainName) &&
+				!s.ProfileService.IsWhitelistedForProfile(profileID, fullName)
+		}
+	}
+
+	return s.BlacklistService.IsBlacklisted(domainName) &&
 		!s.WhitelistService.IsWhitelisted(fullName)
 }
 

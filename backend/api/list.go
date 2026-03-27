@@ -129,6 +129,14 @@ func (api *API) addList(c *gin.Context) {
 		Message: fmt.Sprintf("New blacklist with name '%s' was added", addedList.Name),
 	})
 
+	if api.DNS.ProfileService != nil {
+		go func() {
+			if err := api.DNS.ProfileService.RebuildAllCaches(context.Background()); err != nil {
+				log.Warning("Failed to rebuild profile caches after adding list: %v", err)
+			}
+		}()
+	}
+
 	c.JSON(http.StatusOK, addedList)
 }
 
@@ -272,6 +280,14 @@ func (api *API) runUpdateList(c *gin.Context) {
 		return
 	}
 
+	if api.DNS.ProfileService != nil {
+		go func() {
+			if err := api.DNS.ProfileService.RebuildAllCaches(context.Background()); err != nil {
+				log.Warning("Failed to rebuild profile caches after list update: %v", err)
+			}
+		}()
+	}
+
 	go func() {
 		_ = api.DNSServer.AlertService.SendToAll(context.Background(), alert.Message{
 			Title:    "System",
@@ -357,6 +373,15 @@ func (api *API) removeList(c *gin.Context) {
 		Topic:   audit.TopicList,
 		Message: fmt.Sprintf("Blacklist with name '%s' was deleted", name),
 	})
+
+	if api.DNS.ProfileService != nil {
+		go func() {
+			if err := api.DNS.ProfileService.RebuildAllCaches(context.Background()); err != nil {
+				log.Warning("Failed to rebuild profile caches after removing list: %v", err)
+			}
+		}()
+	}
+
 	c.Status(http.StatusOK)
 }
 

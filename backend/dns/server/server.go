@@ -10,6 +10,7 @@ import (
 	"goaway/backend/logging"
 	"goaway/backend/mac"
 	"goaway/backend/notification"
+	"goaway/backend/profile"
 	"goaway/backend/request"
 	"goaway/backend/resolution"
 	"goaway/backend/settings"
@@ -73,6 +74,7 @@ type DNSServer struct {
 	NotificationService *notification.Service
 	BlacklistService    *blacklist.Service
 	WhitelistService    *whitelist.Service
+	ProfileService      *profile.Service
 }
 
 type CachedRecord struct {

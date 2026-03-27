@@ -9,6 +9,7 @@ import (
 	"goaway/backend/logging"
 	"goaway/backend/notification"
 	"goaway/backend/prefetch"
+	"goaway/backend/profile"
 	"goaway/backend/request"
 	"goaway/backend/resolution"
 	"goaway/backend/user"
@@ -48,6 +49,7 @@ type ServiceRegistry struct {
 	NotificationService *notification.Service
 	BlacklistService    *blacklist.Service
 	WhitelistService    *whitelist.Service
+	ProfileService      *profile.Service
 }
 
 type ServiceError struct {
@@ -146,6 +148,7 @@ func (r *ServiceRegistry) setupAPIServer() {
 		BlacklistService:    r.BlacklistService,
 		WhitelistService:    r.WhitelistService,
 	}
+	// ProfileService is accessed via api.DNS.ProfileService — no separate field needed on API
 }
 
 func (r *ServiceRegistry) StartAll() {
