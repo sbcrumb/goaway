@@ -19,6 +19,7 @@ import {
   NoteIcon,
   NotebookIcon,
   PersonSimpleThrowIcon,
+  ShieldIcon,
   SignOutIcon,
   TrafficSignIcon,
   UsersIcon
@@ -73,6 +74,11 @@ const data = {
       title: "Clients",
       url: "/clients",
       icon: UsersIcon
+    },
+    {
+      title: "Profiles",
+      url: "/profiles",
+      icon: ShieldIcon
     },
     {
       title: "Settings",
