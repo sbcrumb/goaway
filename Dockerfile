@@ -12,7 +12,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/client/dist ./client/dist
-RUN CGO_ENABLED=0 go build -o goaway .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 go build -o goaway .
 
 FROM alpine:3.22
 RUN apk add --no-cache ca-certificates
