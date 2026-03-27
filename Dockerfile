@@ -1,23 +1,22 @@
-FROM alpine:3.22
-
-ARG GOAWAY_VERSION=""
-ARG DNS_PORT=53
-ARG WEBSITE_PORT=8080
-
-ENV DNS_PORT=${DNS_PORT} WEBSITE_PORT=${WEBSITE_PORT}
-
-COPY installer.sh ./
-
-RUN apk add --no-cache curl jq bash ca-certificates && \
-    mkdir -p /app && \
-    ./installer.sh $GOAWAY_VERSION && \
-    mv /root/.local/bin/goaway /app/goaway && \
-    rm -rf /var/cache/apk/* /tmp/* /var/tmp/* /root/.cache /root/.local installer.sh
-
+FROM node:22-alpine AS frontend
 WORKDIR /app
+RUN npm install -g pnpm
+COPY client/package.json client/pnpm-lock.yaml ./client/
+RUN pnpm -C client install --frozen-lockfile
+COPY client ./client
+RUN pnpm -C client build
 
-COPY updater.sh ./
+FROM golang:1.26.0-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+COPY --from=frontend /app/client/dist ./client/dist
+RUN CGO_ENABLED=0 go build -o goaway .
 
-EXPOSE ${DNS_PORT}/tcp ${DNS_PORT}/udp ${WEBSITE_PORT}/tcp
-
-ENTRYPOINT [ "./goaway" ]
+FROM alpine:3.22
+RUN apk add --no-cache ca-certificates
+WORKDIR /app
+COPY --from=builder /app/goaway ./goaway
+EXPOSE 53/udp 53/tcp 8080/tcp
+ENTRYPOINT ["./goaway"]
