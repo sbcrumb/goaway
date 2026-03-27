@@ -231,19 +231,33 @@ func (s *Service) GetProfile(ctx context.Context, id uint) (*ProfileDetail, erro
 	if err != nil {
 		return nil, err
 	}
-	sources, err := s.repo.GetProfileSources(ctx, id)
+	profileSources, err := s.repo.GetProfileSources(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+
+	// Build a map of sourceID -> Source so we can populate Name and URL
+	allSources, err := s.repo.GetAllSources(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sourceMap := make(map[uint]database.Source, len(allSources))
+	for _, src := range allSources {
+		sourceMap[src.ID] = src
+	}
+
 	detail := &ProfileDetail{
 		ID:        p.ID,
 		Name:      p.Name,
 		IsDefault: p.IsDefault,
-		Sources:   make([]ProfileSourceStatus, len(sources)),
+		Sources:   make([]ProfileSourceStatus, len(profileSources)),
 	}
-	for i, ps := range sources {
+	for i, ps := range profileSources {
+		src := sourceMap[ps.SourceID]
 		detail.Sources[i] = ProfileSourceStatus{
 			SourceID: ps.SourceID,
+			Name:     src.Name,
+			URL:      src.URL,
 			Active:   ps.Active,
 		}
 	}
