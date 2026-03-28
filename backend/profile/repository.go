@@ -168,7 +168,7 @@ func (r *repository) GetAllSubnets(ctx context.Context) ([]SubnetRule, error) {
 	}
 	err := r.db.WithContext(ctx).
 		Table("subnet_profiles sp").
-		Select("sp.id, sp.cidr, sp.profile_id, p.name as profile_name").
+		Select("sp.id, sp.c_id_r as cidr, sp.profile_id, p.name as profile_name").
 		Joins("JOIN profiles p ON p.id = sp.profile_id").
 		Scan(&rows).Error
 	if err != nil {
@@ -192,7 +192,7 @@ func (r *repository) CreateSubnet(ctx context.Context, s *database.SubnetProfile
 
 func (r *repository) UpdateSubnet(ctx context.Context, id uint, cidr string, profileID uint) error {
 	return r.db.WithContext(ctx).Model(&database.SubnetProfile{}).Where("id = ?", id).Updates(map[string]any{
-		"cidr":       cidr,
+		"c_id_r":     cidr,
 		"profile_id": profileID,
 	}).Error
 }

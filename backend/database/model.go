@@ -99,7 +99,7 @@ type ProfileWhitelist struct {
 
 type SubnetProfile struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	CIDR      string    `gorm:"unique;not null" json:"cidr"`
+	CIDR      string    `gorm:"column:c_id_r;unique;not null" json:"cidr"`
 	ProfileID uint      `gorm:"not null" json:"profileId"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
