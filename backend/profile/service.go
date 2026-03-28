@@ -222,6 +222,25 @@ func (s *Service) ListProfiles(ctx context.Context) ([]database.Profile, error) 
 	return s.repo.GetAllProfiles(ctx)
 }
 
+// SyncAllProfileSources ensures every profile has a profile_sources row for every
+// source, then rebuilds all caches. Call this after adding a new blocklist source.
+func (s *Service) SyncAllProfileSources(ctx context.Context) error {
+	sources, err := s.repo.GetAllSources(ctx)
+	if err != nil {
+		return err
+	}
+	profiles, err := s.repo.GetAllProfiles(ctx)
+	if err != nil {
+		return err
+	}
+	for _, p := range profiles {
+		if err := s.repo.SyncProfileSources(ctx, p.ID, sources); err != nil {
+			return err
+		}
+	}
+	return s.RebuildAllCaches(ctx)
+}
+
 func (s *Service) GetAllSources(ctx context.Context) ([]database.Source, error) {
 	return s.repo.GetAllSources(ctx)
 }

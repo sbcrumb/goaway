@@ -131,8 +131,8 @@ func (api *API) addList(c *gin.Context) {
 
 	if api.DNS.ProfileService != nil {
 		go func() {
-			if err := api.DNS.ProfileService.RebuildAllCaches(context.Background()); err != nil {
-				log.Warning("Failed to rebuild profile caches after adding list: %v", err)
+			if err := api.DNS.ProfileService.SyncAllProfileSources(context.Background()); err != nil {
+				log.Warning("Failed to sync profile sources after adding list: %v", err)
 			}
 		}()
 	}

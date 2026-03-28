@@ -2,6 +2,7 @@ package profile
 
 import (
 	"context"
+	"fmt"
 	"goaway/backend/database"
 
 	"gorm.io/gorm"
@@ -179,5 +180,12 @@ func (r *repository) DeleteSubnet(ctx context.Context, id uint) error {
 }
 
 func (r *repository) SetClientProfile(ctx context.Context, ip string, profileID *uint) error {
-	return r.db.WithContext(ctx).Model(&database.MacAddress{}).Where("ip = ?", ip).Update("profile_id", profileID).Error
+	result := r.db.WithContext(ctx).Model(&database.MacAddress{}).Where("ip = ?", ip).Update("profile_id", profileID)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("client %s has not been seen yet — it must send a DNS query through goaway before a profile can be assigned", ip)
+	}
+	return nil
 }
