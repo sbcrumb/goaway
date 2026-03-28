@@ -2,7 +2,6 @@ package profile
 
 import (
 	"context"
-	"fmt"
 	"goaway/backend/database"
 
 	"gorm.io/gorm"

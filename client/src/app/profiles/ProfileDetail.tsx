@@ -70,11 +70,17 @@ export function ProfileDetail({ profile, open, onClose, onRenamed }: Props) {
   useEffect(() => {
     if (!profile || !open) return;
     setEditedName(profile.name);
-    setSources(profile.sources ?? []);
+    fetchFullProfile();
     fetchBlacklist();
     fetchWhitelist();
     fetchClients();
   }, [profile, open]);
+
+  const fetchFullProfile = async () => {
+    if (!profile) return;
+    const [code, data] = await GetRequest(`profiles/${profile.id}`);
+    if (code === 200) setSources(data.sources ?? []);
+  };
 
   const fetchBlacklist = async () => {
     if (!profile) return;
