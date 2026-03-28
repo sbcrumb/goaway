@@ -31,7 +31,7 @@ type Repository interface {
 	AddProfileWhitelist(ctx context.Context, profileID uint, domain string) error
 	RemoveProfileWhitelist(ctx context.Context, profileID uint, domain string) error
 
-	GetAllSubnets(ctx context.Context) ([]database.SubnetProfile, error)
+	GetAllSubnets(ctx context.Context) ([]SubnetRule, error)
 	CreateSubnet(ctx context.Context, s *database.SubnetProfile) error
 	UpdateSubnet(ctx context.Context, id uint, cidr string, profileID uint) error
 	DeleteSubnet(ctx context.Context, id uint) error
@@ -159,9 +159,31 @@ func (r *repository) RemoveProfileWhitelist(ctx context.Context, profileID uint,
 	return r.db.WithContext(ctx).Where("profile_id = ? AND domain = ?", profileID, domain).Delete(&database.ProfileWhitelist{}).Error
 }
 
-func (r *repository) GetAllSubnets(ctx context.Context) ([]database.SubnetProfile, error) {
-	var subnets []database.SubnetProfile
-	return subnets, r.db.WithContext(ctx).Find(&subnets).Error
+func (r *repository) GetAllSubnets(ctx context.Context) ([]SubnetRule, error) {
+	var rows []struct {
+		ID          uint
+		CIDR        string
+		ProfileID   uint
+		ProfileName string
+	}
+	err := r.db.WithContext(ctx).
+		Table("subnet_profiles sp").
+		Select("sp.id, sp.cidr, sp.profile_id, p.name as profile_name").
+		Joins("JOIN profiles p ON p.id = sp.profile_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]SubnetRule, len(rows))
+	for i, row := range rows {
+		result[i] = SubnetRule{
+			ID:          row.ID,
+			CIDR:        row.CIDR,
+			ProfileID:   row.ProfileID,
+			ProfileName: row.ProfileName,
+		}
+	}
+	return result, nil
 }
 
 func (r *repository) CreateSubnet(ctx context.Context, s *database.SubnetProfile) error {

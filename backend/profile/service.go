@@ -359,11 +359,11 @@ func (s *Service) RemoveProfileWhitelist(ctx context.Context, profileID uint, do
 	return s.RebuildCacheForProfile(ctx, profileID)
 }
 
-func (s *Service) ListSubnets(ctx context.Context) ([]database.SubnetProfile, error) {
+func (s *Service) ListSubnets(ctx context.Context) ([]SubnetRule, error) {
 	return s.repo.GetAllSubnets(ctx)
 }
 
-func (s *Service) CreateSubnet(ctx context.Context, cidr string, profileID uint) (*database.SubnetProfile, error) {
+func (s *Service) CreateSubnet(ctx context.Context, cidr string, profileID uint) (*SubnetRule, error) {
 	if _, _, err := net.ParseCIDR(cidr); err != nil {
 		return nil, err
 	}
@@ -374,7 +374,13 @@ func (s *Service) CreateSubnet(ctx context.Context, cidr string, profileID uint)
 	if err := s.RebuildSubnetRules(ctx); err != nil {
 		log.Warning("Failed to rebuild subnet rules: %v", err)
 	}
-	return sub, nil
+	// Look up the profile name so the response includes it
+	p, err := s.repo.GetProfileByID(ctx, profileID)
+	profileName := ""
+	if err == nil {
+		profileName = p.Name
+	}
+	return &SubnetRule{ID: sub.ID, CIDR: sub.CIDR, ProfileID: sub.ProfileID, ProfileName: profileName}, nil
 }
 
 func (s *Service) UpdateSubnet(ctx context.Context, id uint, cidr string, profileID uint) error {
