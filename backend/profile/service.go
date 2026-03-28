@@ -2,6 +2,7 @@ package profile
 
 import (
 	"context"
+	"fmt"
 	"goaway/backend/database"
 	"goaway/backend/logging"
 	model "goaway/backend/dns/server/models"
@@ -365,10 +366,13 @@ func (s *Service) ListSubnets(ctx context.Context) ([]SubnetRule, error) {
 
 func (s *Service) CreateSubnet(ctx context.Context, cidr string, profileID uint) (*SubnetRule, error) {
 	if _, _, err := net.ParseCIDR(cidr); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid CIDR: %w", err)
 	}
 	sub := &database.SubnetProfile{CIDR: cidr, ProfileID: profileID}
 	if err := s.repo.CreateSubnet(ctx, sub); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "duplicate") {
+			return nil, fmt.Errorf("subnet %s is already assigned to a profile", cidr)
+		}
 		return nil, err
 	}
 	if err := s.RebuildSubnetRules(ctx); err != nil {

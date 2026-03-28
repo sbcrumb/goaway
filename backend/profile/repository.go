@@ -207,7 +207,13 @@ func (r *repository) SetClientProfile(ctx context.Context, ip string, profileID 
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("client %s has not been seen yet — it must send a DNS query through goaway before a profile can be assigned", ip)
+		// No mac_addresses row exists for this IP (MAC not resolved via ARP).
+		// Create a minimal stub row so the profile assignment can be stored.
+		stub := &database.MacAddress{MAC: "ip:" + ip, IP: ip, ProfileID: profileID}
+		return r.db.WithContext(ctx).Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "mac"}},
+			DoUpdates: clause.AssignmentColumns([]string{"profile_id", "ip"}),
+		}).Create(stub).Error
 	}
 	return nil
 }
